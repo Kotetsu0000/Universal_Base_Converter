@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Base Converter | Modern</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --background: #f8fafc;
+            --surface: rgba(255, 255, 255, 0.9);
+            --text: #1e293b;
+            --shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+            --border-radius: 16px;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --background: #0f172a;
+                --surface: rgba(30, 41, 59, 0.9);
+                --text: #f8fafc;
+                --shadow: 0 8px 32px rgba(15, 23, 42, 0.5);
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            padding: 2rem;
+            background: var(--background);
+            color: var(--text);
+            display: grid;
+            place-items: center;
+            transition: background 0.3s ease;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--surface);
+            backdrop-filter: blur(12px);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(45deg, #6366f1, #8b5cf6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        input, select {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        button {
+            width: 100%;
+            padding: 1rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        #result {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: rgba(99, 102, 241, 0.05);
+            border-radius: 12px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 1rem;
+            font-family: 'Fira Code', monospace;
+        }
+
+        .result-item {
+            padding: 0.75rem;
+            background: var(--surface);
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .result-base {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-bottom: 0.25rem;
+        }
+
+        .result-value {
+            font-weight: 600;
+            word-break: break-all;
+        }
+
+        #loading {
+            display: none;
+            text-align: center;
+            padding: 1rem;
+            color: var(--primary);
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 1rem;
+            }
+
+            .container {
+                padding: 1.5rem;
+            }
+
+            #result {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Universal Base Converter</h1>
+        
+        <div class="input-group">
+            <label for="number">Input Value</label>
+            <input type="text" id="number" placeholder="Enter number" autocomplete="off">
+        </div>
+
+        <div class="input-group">
+            <label for="fromBase">Source Base (2-36)</label>
+            <input type="number" id="fromBase" min="2" max="36" value="10">
+        </div>
+
+        <button onclick="convert()">Convert</button>
+        
+        <div id="loading">Converting...</div>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function convert() {
+            const number = document.getElementById('number').value.trim().toUpperCase();
+            const fromBase = parseInt(document.getElementById('fromBase').value);
+            const resultDiv = document.getElementById('result');
+            const loading = document.getElementById('loading');
+
+            resultDiv.innerHTML = '';
+            loading.style.display = 'block';
+            
+            // 非同期処理でUIブロックを防ぐ
+            setTimeout(async () => {
+                try {
+                    if (!number) throw new Error('Input value required');
+                    if (fromBase < 2 || fromBase > 36) throw new Error('Base must be 2-36');
+                    if (!isValidNumber(number, fromBase)) throw new Error('Invalid input for base');
+
+                    const decimal = stringToDecimal(number, fromBase);
+                    const results = await generateResults(decimal);
+
+                    resultDiv.innerHTML = results.map(([base, value]) => `
+                        <div class="result-item">
+                            <div class="result-base">Base ${base}</div>
+                            <div class="result-value">${value}</div>
+                        </div>
+                    `).join('');
+
+                    loading.style.display = 'none';
+                } catch (error) {
+                    loading.style.display = 'none';
+                    resultDiv.innerHTML = `
+                        <div class="result-item" style="grid-column:1/-1;color:#ef4444">
+                            ${error.message}
+                        </div>
+                    `;
+                }
+            }, 50);
+        }
+
+        async function generateResults(decimal) {
+            return new Promise(resolve => {
+                const results = [];
+                for (let base = 2; base <= 36; base++) {
+                    try {
+                        const converted = decimalToString(decimal, base);
+                        results.push([base, converted]);
+                    } catch {
+                        results.push([base, 'Error']);
+                    }
+                }
+                resolve(results);
+            });
+        }
+
+        function stringToDecimal(str, base) {
+            const digits = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            let result = BigInt(0);
+            const baseBig = BigInt(base);
+            
+            for (let i = 0; i < str.length; i++) {
+                const char = str[i];
+                const value = BigInt(digits.indexOf(char));
+                if (value < 0 || value >= baseBig) throw new Error();
+                result = result * baseBig + value;
+            }
+            return result;
+        }
+
+        function decimalToString(num, base) {
+            if (base < 2 || base > 36) throw new Error();
+            const digits = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            let result = '';
+            const baseBig = BigInt(base);
+            let n = num;
+            
+            if (n === BigInt(0)) return '0';
+            
+            while (n > BigInt(0)) {
+                const remainder = n % baseBig;
+                result = digits[remainder] + result;
+                n = n / baseBig;
+            }
+            return result;
+        }
+
+        function isValidNumber(number, base) {
+            const validDigits = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'.substring(0, base);
+            const regex = new RegExp(`^[${validDigits}]+$`, 'i');
+            return regex.test(number);
+        }
+    </script>
+</body>
+</html>
