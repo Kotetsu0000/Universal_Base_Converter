@@ -265,7 +265,7 @@
         }
 
         function isValidNumber(number, base) {
-            const validDigits = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'.substring(0, base);
+            const validDigits = '0123456789abcdefghijklmnopqrstuvwxyz'.substring(0, base);
             const regex = new RegExp(`^[${validDigits}]+$`, 'i');
             return regex.test(number);
         }
